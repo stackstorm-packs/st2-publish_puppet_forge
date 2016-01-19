@@ -1,0 +1,7 @@
+### Place information about your pack version here.
+---
+name: pattern-publish_puppet_forge
+description: Example Pack showing how to deploy software to Puppet Forge
+version: 0.1.0
+author: James Fryman
+email: james@stackstorm.com

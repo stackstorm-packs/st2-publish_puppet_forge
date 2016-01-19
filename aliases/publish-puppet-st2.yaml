@@ -1,0 +1,6 @@
+---
+name: "publish-puppet-st2"
+description: "Release puppet-st2"
+action_ref: "stackstorm.publish-puppet-st2"
+formats:
+  - "puppet publish puppet-st2 {{branch}}"

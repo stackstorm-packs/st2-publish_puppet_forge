@@ -1,0 +1,93 @@
+---
+vars:
+  run_host: 'localhost'
+  repo_dir: '/tmp/puppet-st2'
+  repo_url: 'git@github.com:StackStorm/puppet-st2.git'
+  forge_file: '~/.puppetforge.yml'
+  forge_username: '{{ system.puppetforge_username }}'
+  forge_password: '{{ system.puppetforge_password }}'
+chain:
+  -
+    name: 'clone-puppet-module-from-git'
+    ref: 'core.remote'
+    params:
+      cmd: 'git clone {{ repo_url }} {{ repo_dir }} -b {{ branch }}'
+      hosts: '{{ run_host }}'
+    on-success: 'bootstrap-puppet-module'
+    on-failure: 'cleanup'
+  -
+    name: 'bootstrap-puppet-module'
+    ref: 'core.remote'
+    params:
+      hosts: '{{ run_host }}'
+      cmd: 'bundle install'
+      cwd: '{{ repo_dir }}'
+    on-success: 'cleanup-vendored-gems'
+    on-failure: 'cleanup'
+  -
+    name: 'cleanup-vendored-gems'
+    ref: 'core.remote'
+    params:
+      hosts: '{{ run_host }}'
+      cmd: 'rm -rf vendor'
+      cwd: '{{ repo_dir }}'
+    on-success: 'set-puppetforge-credentials'
+    on-failure: 'cleanup'
+  -
+    name: 'set-puppetforge-credentials'
+    ref: 'core.remote'
+    params:
+      hosts: '{{ run_host }}'
+      cmd: "echo \"---\nurl: https://forgeapi.puppetlabs.com\nusername: {{ forge_username }}\npassword: {{ forge_password }}\" > {{ forge_file }}"
+    on-success: 'tag-puppet-module'
+    on-failure: 'cleanup'
+  -
+    name: 'tag-puppet-module'
+    ref: 'core.remote'
+    params:
+      cmd: 'bundle exec rake module:tag'
+      hosts: '{{ run_host }}'
+      cwd: '{{ repo_dir }}'
+    on-success: 'build-puppet-module'
+    on-failure: 'cleanup'
+  -
+    name: 'build-puppet-module'
+    ref: 'core.remote'
+    params:
+      cmd: 'bundle exec rake build'
+      hosts: '{{ run_host }}'
+      cwd: '{{ repo_dir }}'
+    on-success: 'upload-module-to-forge'
+    on-failure: 'cleanup'
+  -
+    name: 'upload-module-to-forge'
+    ref: 'core.remote'
+    params:
+      cmd: 'bundle exec rake module:push'
+      hosts: '{{ run_host }}'
+      cwd: '{{ repo_dir }}'
+    on-success: 'push-git-tags'
+    on-failure: 'cleanup'
+  -
+    name: 'push-git-tags'
+    ref: 'core.remote'
+    params:
+      cmd: 'git push origin --tags'
+      hosts: '{{ run_host }}'
+      cwd: '{{ repo_dir }}'
+    on-success: 'cleanup'
+    on-failure: 'cleanup'
+  -
+    name: 'cleanup'
+    ref: 'core.remote'
+    params:
+      hosts: '{{ run_host }}'
+      cmd: 'if [ -d {{ repo_dir }} ]; then rm -rf {{ repo_dir }}; fi'
+    on-success: 'remove-puppetfile-credentials'
+    on-failure: 'remove-puppetfile-credentials'
+  -
+    name: 'remove-puppetfile-credentials'
+    ref: 'core.remote'
+    params:
+      hosts: '{{ run_host }}'
+      cmd: 'if [ -f {{ forge_file }} ]; then rm -rf {{ forge_file }}; fi'

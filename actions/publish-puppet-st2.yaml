@@ -1,0 +1,22 @@
+---
+name: 'publish-puppet-st2'
+runner_type: 'action-chain'
+description: 'Release puppet-st2 module to Puppet Forge based on Git branch'
+enabled: true
+entry_point: 'workflows/publish-puppet-st2.yaml'
+parameters:
+  branch:
+    type: 'string'
+    description: 'Git branch to build/release to Puppet forge'
+    default: 'master'
+  skip_notify:
+    default:
+      - 'clone-puppet-module-from-git'
+      - 'bootstrap-puppet-module'
+      - 'cleanup-vendored-gems'
+      - 'set-puppetforge-credentials'
+      - 'build-puppet-module'
+      - 'upload-module-to-forge'
+      - 'push-git-tags'
+      - 'cleanup'
+      - 'remove-puppetfile-credentials'
